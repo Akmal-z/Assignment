@@ -96,7 +96,7 @@ if st.sidebar.button('Run Genetic Algorithm'):
     # (Make sure the CSV file is in the same folder as app.py)
     try:
         # REPLACE 'your_modified_data.csv' with your actual file name
-        ratings_data = pd.read_csv('your_modified_data.csv')
+        ratings_data = pd.read_csv('program_ratings.csv.csv')
         
         # --- Run your GA logic ---
         # This is where you call your main GA function
