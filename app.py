@@ -126,8 +126,8 @@ def run_ga(csv_data, co_r, mut_r):
     return final_schedule_df, total_fitness
 
 
-st.title('JIE42903 - Evolutionary Computing Assignment')
-st.header('Genetic Algorithm for TV Scheduling')
+
+st.title('Genetic Algorithm for TV Scheduling')
 
 
 st.sidebar.header('GA Parameters Input')
