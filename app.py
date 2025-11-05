@@ -112,15 +112,19 @@ def run_ga(csv_data, co_r, mut_r):
     best_schedule_ids = max(population, key=lambda ind: calculate_fitness(ind, ratings_dict))
     
     # Format the final schedule into a nice DataFrame
-    schedule_details = csv_data[csv_data['ProgramID'].isin(best_schedule_ids)]
+    
+    # --- CHANGE 1: Added .drop_duplicates() for safety ---
+    schedule_details = csv_data[csv_data['ProgramID'].isin(best_schedule_ids)].drop_duplicates(subset=['ProgramID'])
+    
     final_schedule_df = pd.DataFrame({'ProgramID': best_schedule_ids})
     final_schedule_df = final_schedule_df.merge(schedule_details, on='ProgramID', how='left')
     
     # Add a Time Slot column
     final_schedule_df['Time Slot'] = [f"Slot {i+1}" for i in range(NUM_TIME_SLOTS)]
     
-    # Reorder columns for the final table
-    final_schedule_df = final_schedule_df[['Time Slot', 'ProgramID', 'ProgramName', 'Genre', 'Rating']]
+    # --- CHANGE 2: Simplified the final table columns ---
+    # This will now only show the Time Slot, Program Name, and Rating
+    final_schedule_df = final_schedule_df[['Time Slot', 'ProgramName', 'Rating']]
     
     # Calculate the total fitness (rating) of the best schedule
     total_fitness = final_schedule_df['Rating'].sum()
@@ -131,8 +135,6 @@ def run_ga(csv_data, co_r, mut_r):
 # --- 2. STREAMLIT INTERFACE ---
 # -----------------------------------------------------------------
 
-# *** THIS IS THE CHANGE YOU REQUESTED ***
-# The old st.title line is removed, and this is now the main title.
 st.title('Genetic Algorithm for TV Scheduling')
 
 
@@ -143,7 +145,7 @@ st.sidebar.header('GA Parameters Input')
 co_r = st.sidebar.slider(
     'Crossover Rate (CO_R)', 
     min_value=0.0, 
-    max_value=0.95, 
+    max_value=0.95, V
     value=0.8,  # Default value
     step=0.05
 )
@@ -190,9 +192,4 @@ if st.sidebar.button('Run Genetic Algorithm'):
             st.dataframe(final_schedule)
 
     except FileNotFoundError:
-        st.error(f"Error: The CSV file ('{CSV_FILE_NAME}') was not found. Please make sure it's in your repository and named correctly.")
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-
-else:
-    st.info('Set your parameters in the sidebar and click "Run Genetic Algorithm" to start.')
+        st.error(f"Error: The
