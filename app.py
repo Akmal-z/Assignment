@@ -35,7 +35,6 @@ def calculate_fitness(schedule, ratings_dict):
     """
     fitness = 0
     # Use set() to ensure we only count the fitness of unique programs
-    # in case the GA creates a schedule with duplicates.
     for program_id in set(schedule):
         fitness += ratings_dict.get(program_id, 0)
     return fitness
@@ -53,7 +52,6 @@ def selection(population, ratings_dict):
 def crossover(parent1, parent2, crossover_rate):
     """
     Performs single-point crossover with a given rate (co_r).
-    [cite_start][cite: 13, 15]
     """
     if random.random() < crossover_rate:
         # Crossover point is based on 8 time slots
@@ -87,7 +85,6 @@ def crossover(parent1, parent2, crossover_rate):
 def mutation(individual, mutation_rate):
     """
     Performs swap mutation with a given rate (mut_r).
-    [cite_start][cite: 14, 15]
     """
     if random.random() < mutation_rate:
         # Pick two random positions (indices) to swap
@@ -124,7 +121,7 @@ def run_ga(csv_data, co_r, mut_r):
             parent1 = selection(population, ratings_dict)
             parent2 = selection(population, ratings_dict)
             
-            # [cite_start]Pass the user-defined rates to the functions [cite: 13, 14]
+            # Pass the user-defined rates to the functions
             child1, child2 = crossover(parent1, parent2, co_r)
             child1 = mutation(child1, mut_r)
             child2 = mutation(child2, mut_r)
@@ -152,39 +149,39 @@ def run_ga(csv_data, co_r, mut_r):
     return final_schedule_df, total_fitness
 
 # -----------------------------------------------------------------
-# [cite_start]--- 2. STREAMLIT INTERFACE [cite: 11] ---
+# --- 2. STREAMLIT INTERFACE ---
 # -----------------------------------------------------------------
 
 st.title('Genetic Algorithm for TV Scheduling')
 
 st.sidebar.header('GA Parameters Input')
 
-# [cite_start]Crossover Rate (CO_R) slider [cite: 13, 15, 16]
+# Crossover Rate (CO_R) slider
 co_r = st.sidebar.slider(
     'Crossover Rate (CO_R)',
     min_value=0.0,
-    [cite_start]max_value=0.95, # Range 0 to 0.95 [cite: 15]
-    [cite_start]value=0.8,      # Default 0.8 [cite: 13]
+    max_value=0.95, # Range 0 to 0.95
+    value=0.8,      # Default 0.8
     step=0.05
 )
 
-# [cite_start]Mutation Rate (MUT_R) slider [cite: 14, 15, 16]
+# Mutation Rate (MUT_R) slider
 mut_r = st.sidebar.slider(
     'Mutation Rate (MUT_R)',
-    [cite_start]min_value=0.01, # Range 0.01 to 0.05 [cite: 15]
-    [cite_start]max_value=0.05, # Range 0.01 to 0.05 [cite: 15]
+    min_value=0.01, # Range 0.01 to 0.05
+    max_value=0.05, # Range 0.01 to 0.05
     value=0.02,     # Using 0.02 as a logical default *within* the required range
     step=0.01
 )
 
 st.sidebar.write('---')
 
-# [cite_start]--- 3. RUN ALGORITHM AND DISPLAY RESULTS [cite: 21] ---
+# --- 3. RUN ALGORITHM AND DISPLAY RESULTS ---
 
 if st.sidebar.button('Run Genetic Algorithm'):
     
     try:
-        # [cite_start]Load the modified CSV file [cite: 9]
+        # Load the modified CSV file
         CSV_FILE_NAME = 'program_ratings.csv'
         ratings_data = pd.read_csv(CSV_FILE_NAME)
         
@@ -195,16 +192,16 @@ if st.sidebar.button('Run Genetic Algorithm'):
             st.error(f"Error: Your CSV file must contain at least {NUM_TIME_SLOTS} unique programs to fill the schedule.")
         else:
             with st.spinner('Evolving schedules... Please wait.'):
-                # [cite_start]Run the GA with user-defined parameters [cite: 18]
+                # Run the GA with user-defined parameters
                 final_schedule, total_fitness = run_ga(ratings_data, co_r, mut_r)
             
             st.success('Algorithm run complete!')
             
-            # [cite_start]Document the parameters used [cite: 24]
+            # Document the parameters used
             st.subheader('Parameters Used for This Trial')
             st.code(f"Crossover Rate: {co_r}\nMutation Rate: {mut_r}")
             
-            # [cite_start]Display the resulting schedule in a table [cite: 18, 19, 25]
+            # Display the resulting schedule in a table
             st.subheader('Resulting Schedule')
             st.write(f"**Total Schedule Rating (Fitness): {total_fitness:.2f}**")
             st.dataframe(final_schedule)
