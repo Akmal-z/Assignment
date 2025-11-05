@@ -160,7 +160,7 @@ co_r = st.sidebar.slider(
 mut_r = st.sidebar.slider(
     'Mutation Rate (MUT_R)', 
     min_value=0.01, 
-    max_value=0.05, S
+    max_value=0.05, 
     value=0.02, # Using 0.02 as a logical default *within* the required range
     step=0.01
 )
