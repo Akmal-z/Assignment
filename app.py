@@ -7,21 +7,24 @@ import random
 # --- GA Constants ---
 POPULATION_SIZE = 50
 NUM_GENERATIONS = 100
-# NUM_TIME_SLOTS is now determined dynamically from the CSV file
+# A 24-hour schedule with 2-hour slots means exactly 12 slots.
+NUM_TIME_SLOTS = 12 
 
 # --- GA Function: Create a single schedule (Chromosome) ---
-def create_individual(program_list, num_time_slots):
-    """ Creates a random schedule (an 'individual') """
-    # Create a schedule using all available programs
-    schedule = random.sample(program_list, num_time_slots)
+def create_individual(program_list):
+    """ 
+    Creates a random schedule by sampling 12 programs
+    from the available program list.
+    """
+    schedule = random.sample(program_list, NUM_TIME_SLOTS)
     return schedule
 
 # --- GA Function: Create the first population ---
-def initialize_population(program_list, num_time_slots):
+def initialize_population(program_list):
     """ Creates the initial population of random schedules """
     population = []
     for _ in range(POPULATION_SIZE):
-        population.append(create_individual(program_list, num_time_slots))
+        population.append(create_individual(program_list))
     return population
 
 # --- GA Function: Score a schedule (Fitness Function) ---
@@ -40,36 +43,34 @@ def selection(population, ratings_dict):
     return best_individual
 
 # --- GA Function: Create children (Crossover) ---
-def crossover(parent1, parent2, crossover_rate, num_time_slots):
+def crossover(parent1, parent2, crossover_rate):
     """ 
     Performs single-point crossover with a given rate (co_r).
-    Uses the 'crossover_rate' variable from the Streamlit slider.
     """
     if random.random() < crossover_rate:
-        # Use the dynamic num_time_slots for the crossover point
-        point = random.randint(1, num_time_slots - 1)
+        # Crossover point is based on 12 time slots
+        point = random.randint(1, NUM_TIME_SLOTS - 1)
         
         # Create children by combining parents
         child1 = parent1[:point] + [gene for gene in parent2 if gene not in parent1[:point]]
         child2 = parent2[:point] + [gene for gene in parent1 if gene not in parent2[:point]]
         
-        # Ensure children are the correct length
-        child1 = (child1 + [gene for gene in parent2 if gene not in child1])[:num_time_slots]
-        child2 = (child2 + [gene for gene in parent1 if gene not in child2])[:num_time_slots]
+        # Ensure children are the correct length (12)
+        child1 = (child1 + [gene for gene in parent2 if gene not in child1])[:NUM_TIME_SLOTS]
+        child2 = (child2 + [gene for gene in parent1 if gene not in child2])[:NUM_TIME_SLOTS]
         return child1, child2
     else:
         # No crossover, parents pass on
         return parent1, parent2
 
 # --- GA Function: Randomly change a schedule (Mutation) ---
-def mutation(individual, mutation_rate, num_time_slots):
+def mutation(individual, mutation_rate):
     """ 
     Performs swap mutation with a given rate (mut_r).
-    Uses the 'mutation_rate' variable from the Streamlit slider.
     """
     if random.random() < mutation_rate:
-        # Use the dynamic num_time_slots for the swap indices
-        idx1, idx2 = random.sample(range(num_time_slots), 2)
+        # Pick two random positions (indices) to swap
+        idx1, idx2 = random.sample(range(NUM_TIME_SLOTS), 2)
         # Perform the swap
         individual[idx1], individual[idx2] = individual[idx2], individual[idx1]
     return individual
@@ -81,21 +82,14 @@ def run_ga(csv_data, co_r, mut_r):
     and returns the best schedule as a pandas DataFrame.
     """
     
-    # --- DYNAMIC TIME SLOTS ---
     # Get the list of unique programs
     available_programs = csv_data['ProgramID'].unique().tolist()
-    # The number of time slots is the total number of unique programs
-    num_time_slots = len(available_programs)
-    
-    # Check if there are programs to schedule
-    if num_time_slots == 0:
-        return pd.DataFrame(columns=['Time Slot', 'ProgramName', 'Rating']), 0
     
     # Prepare data dictionary for fitness calculation
     ratings_dict = pd.Series(csv_data.Rating.values, index=csv_data.ProgramID).to_dict()
 
-    # Initialize population using the dynamic number of time slots
-    population = initialize_population(available_programs, num_time_slots)
+    # Initialize population
+    population = initialize_population(available_programs)
     
     # Evolve for a number of generations
     for _ in range(NUM_GENERATIONS):
@@ -110,10 +104,10 @@ def run_ga(csv_data, co_r, mut_r):
             parent1 = selection(population, ratings_dict)
             parent2 = selection(population, ratings_dict)
             
-            # Pass the dynamic num_time_slots to crossover and mutation
-            child1, child2 = crossover(parent1, parent2, co_r, num_time_slots)
-            child1 = mutation(child1, mut_r, num_time_slots)
-            child2 = mutation(child2, mut_r, num_time_slots)
+            # Pass the user-defined rates to the functions
+            child1, child2 = crossover(parent1, parent2, co_r)
+            child1 = mutation(child1, mut_r)
+            child2 = mutation(child2, mut_r)
             
             new_population.extend([child1, child2])
         
@@ -123,15 +117,17 @@ def run_ga(csv_data, co_r, mut_r):
     best_schedule_ids = max(population, key=lambda ind: calculate_fitness(ind, ratings_dict))
     
     # Format the final schedule into a nice DataFrame
-    
-    # Added .drop_duplicates() for safety
     schedule_details = csv_data.drop_duplicates(subset=['ProgramID'])
     
     final_schedule_df = pd.DataFrame({'ProgramID': best_schedule_ids})
     final_schedule_df = final_schedule_df.merge(schedule_details, on='ProgramID', how='left')
     
-    # Add a Time Slot column based on the dynamic number of time slots
-    final_schedule_df['Time Slot'] = [f"Slot {i+1}" for i in range(num_time_slots)]
+    # --- THIS IS THE CHANGE FOR 24-HOUR FORMAT ---
+    # Create the 24-hour time slot labels
+    time_slot_labels = [f"{i*2:02d}00 - {(i+1)*2:02d}00" for i in range(NUM_TIME_SLOTS)]
+    # This will create ["0000 - 0200", "0200 - 0400", ..., "2200 - 2400"]
+    
+    final_schedule_df['Time Slot'] = time_slot_labels
     
     # Simplified the final table columns
     final_schedule_df = final_schedule_df[['Time Slot', 'ProgramName', 'Rating']]
@@ -164,7 +160,7 @@ co_r = st.sidebar.slider(
 mut_r = st.sidebar.slider(
     'Mutation Rate (MUT_R)', 
     min_value=0.01, 
-    max_value=0.05, 
+    max_value=0.05, S
     value=0.02, # Using 0.02 as a logical default *within* the required range
     step=0.01
 )
@@ -182,11 +178,12 @@ if st.sidebar.button('Run Genetic Algorithm'):
         CSV_FILE_NAME = 'program_ratings.csv'
         ratings_data = pd.read_csv(CSV_FILE_NAME)
         
-        # Check if the CSV has the required columns
+        # --- NEW CHECK ---
+        # Check if the CSV has the required columns and *enough* programs
         if 'ProgramID' not in ratings_data.columns or 'Rating' not in ratings_data.columns:
             st.error(f"Error: Your CSV file ('{CSV_FILE_NAME}') must contain 'ProgramID' and 'Rating' columns.")
-        elif len(ratings_data['ProgramID'].unique()) < 2:
-            st.error("Error: Your CSV file must contain at least 2 unique programs to schedule.")
+        elif len(ratings_data['ProgramID'].unique()) < NUM_TIME_SLOTS:
+            st.error(f"Error: Your CSV file must contain at least {NUM_TIME_SLOTS} unique programs to fill the 24-hour schedule.")
         else:
             with st.spinner('Evolving schedules... Please wait.'):
                 # --- Run your GA logic ---
