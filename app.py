@@ -113,7 +113,7 @@ def run_ga(csv_data, co_r, mut_r):
     
     # Format the final schedule into a nice DataFrame
     
-    # --- CHANGE 1: Added .drop_duplicates() for safety ---
+    # Added .drop_duplicates() for safety
     schedule_details = csv_data[csv_data['ProgramID'].isin(best_schedule_ids)].drop_duplicates(subset=['ProgramID'])
     
     final_schedule_df = pd.DataFrame({'ProgramID': best_schedule_ids})
@@ -122,8 +122,7 @@ def run_ga(csv_data, co_r, mut_r):
     # Add a Time Slot column
     final_schedule_df['Time Slot'] = [f"Slot {i+1}" for i in range(NUM_TIME_SLOTS)]
     
-    # --- CHANGE 2: Simplified the final table columns ---
-    # This will now only show the Time Slot, Program Name, and Rating
+    # Simplified the final table columns
     final_schedule_df = final_schedule_df[['Time Slot', 'ProgramName', 'Rating']]
     
     # Calculate the total fitness (rating) of the best schedule
@@ -145,7 +144,7 @@ st.sidebar.header('GA Parameters Input')
 co_r = st.sidebar.slider(
     'Crossover Rate (CO_R)', 
     min_value=0.0, 
-    max_value=0.95, V
+    max_value=0.95, 
     value=0.8,  # Default value
     step=0.05
 )
@@ -170,6 +169,9 @@ if st.sidebar.button('Run Genetic Algorithm'):
     try:
         # This file MUST be in your GitHub repository
         CSV_FILE_NAME = 'program_ratings.csv'
+        
+        # <<< THIS IS THE FIX >>>
+        # The line was incomplete in your last message.
         ratings_data = pd.read_csv(CSV_FILE_NAME)
         
         # Check if the CSV has the required columns
@@ -192,4 +194,9 @@ if st.sidebar.button('Run Genetic Algorithm'):
             st.dataframe(final_schedule)
 
     except FileNotFoundError:
-        st.error(f"Error: The
+        st.error(f"Error: The CSV file ('{CSV_FILE_NAME}') was not found. Please make sure it's in your repository and named correctly.")
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+
+else:
+    st.info('Set your parameters in the sidebar and click "Run Genetic Algorithm" to start.')
